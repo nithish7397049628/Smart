@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # MySQL Database Container
+  mysql_db:
+    image: mysql:8.0
+    container_name: smartcity360_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: RootSecurePassword2026!
+      MYSQL_DATABASE: smart_city_360
+      MYSQL_USER: smartcity_user
+      MYSQL_PASSWORD: UserSecurePassword2026!
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./backend/database/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 5
+      interval: 10s
+
+  # Web Application Container
+  web_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smartcity360_app
+    restart: always
+    depends_on:
+      mysql_db:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_TYPE: mysql
+      DB_HOST: mysql_db
+      DB_PORT: 3306
+      DB_USER: smartcity_user
+      DB_PASSWORD: UserSecurePassword2026!
+      DB_NAME: smart_city_360
+      JWT_SECRET: production_docker_super_secret_jwt_key_2026
+      JWT_EXPIRES_IN: 7d
+      CORS_ORIGIN: "*"
+    volumes:
+      - uploads_data:/app/backend/uploads
+
+volumes:
+  mysql_data:
+  uploads_data:
